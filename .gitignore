@@ -1,0 +1,14 @@
+# Logs
+logs
+*.log
+
+
+# Dependency directories
+node_modules/
+admin/upload/
+user/upload/
+user/downloads
+package-lock.json
+texas-public-repo/dummy-the/web/config.js
+.env
+.idea
