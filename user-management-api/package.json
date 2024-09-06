@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "nodemon --exec ts-node src/index.ts"
   },
   "keywords": [],
   "author": "",
@@ -15,7 +15,8 @@
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.11",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "express": "^4.19.2"
