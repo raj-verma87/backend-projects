@@ -17,12 +17,12 @@ dotenv.config();
 
 const app = express();
 
- app.use(cors());  // This allows requests from any domain.
+ //app.use(cors());  // This allows requests from any domain.
 
-// Use the CORS middleware
-// app.use(cors({
-//   origin: 'http://localhost:3030'  // This allows requests from your React app.
-// }));
+//Use the CORS middleware
+app.use(cors({
+  origin: 'http://localhost:3030'  // This allows requests from your React app.
+}));
 
 app.use(express.json());
 
@@ -62,11 +62,11 @@ app.get('/api/userId', authMiddleware, (req, res) => {
 });
 
 // Serve static files from the "public" directory
-//app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-//res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  res.send('Welcome to the E-Commerce Platform');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+ // res.send('Welcome to the E-Commerce Platform');
 });
 export default app;
 
