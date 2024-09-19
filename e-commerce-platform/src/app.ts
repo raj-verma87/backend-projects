@@ -10,6 +10,10 @@ import orderRoutes from './routes/order.routes';
 import { getIO } from './socket';
 import authMiddleware from './middlewares/auth.middleware';
 import cors from 'cors';
+import { errorMiddleware } from './middlewares/error.middleware';
+import logger from './utils/logger';
+import { Request, Response, NextFunction } from 'express';
+import { globalLimiter } from './middlewares/rateLimit.middleware';
 
 const path = require('path');
 
@@ -39,6 +43,14 @@ app.use('/api/products',productRoutes);
 app.use('/api/cart',cartRoutes);
 app.use('/api/orders',orderRoutes);
 
+// Middleware to log each request
+app.use((req, res, next) => {
+  logger.info(`Incoming request: ${req.method} ${req.url}`);
+  next();
+});
+
+app.use('/api/', globalLimiter);
+
 // Add this API route to trigger a real-time notification
 app.post('/api/notify', (req, res) => {
   const io = getIO();
@@ -65,9 +77,26 @@ app.get('/api/userId', authMiddleware, (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
+  logger.info('Homepage accessed');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
  // res.send('Welcome to the E-Commerce Platform');
 });
+
+// Simulating an error
+app.get('/error', (req, res) => {
+  const error = new Error('Something went wrong!');
+  logger.error(`Error occurred: ${error.message}`);
+  res.status(500).send('An error occurred');
+});
+
+// Error-handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error(`Unhandled error: ${err.message}`);
+  res.status(500).send('Server Error');
+});
+
+app.use(errorMiddleware);
+
 export default app;
 
 

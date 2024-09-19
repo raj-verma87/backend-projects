@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Product from '../models/product.model';
+import redisClient from '../config/redis';
 
 // Create a new product
 export const createProduct = async (req: Request, res: Response): Promise<Response> => {
@@ -36,7 +37,20 @@ export const getAllProducts = async (req: Request, res: Response): Promise<Respo
 // Get a single product by ID
 export const getProductById = async (req: Request, res: Response): Promise<Response> => {
   try {
+
+    // Try to get cached product from Redis
+  const cachedProduct = await redisClient.get(`product:${req.params.id}`);
+
+  if (cachedProduct) {
+    return res.status(200).json(JSON.parse(cachedProduct));
+  }
     const product = await Product.findById(req.params.id);
+
+    if (product) {
+      await redisClient.set(`product:${req.params.id}`, JSON.stringify(product), {EX: 3600}); // Cache for 1 hour
+      return res.json(product);
+    }
+
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }

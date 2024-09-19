@@ -1,0 +1,40 @@
+<form id="payment-form">
+    <button type="button" id="pay-btn">Pay with Razorpay</button>
+  </form>
+  
+  <script>
+    // Payment button event
+    document.getElementById('pay-btn').addEventListener('click', async () => {
+      const order = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount: 500 }) // Example amount in INR
+      }).then(res => res.json());
+  
+      const options = {
+        key: 'your_razorpay_key_id', // Replace with your Razorpay Key ID
+        amount: order.amount,
+        currency: 'INR',
+        name: 'Your Company Name',
+        description: 'Test Transaction',
+        order_id: order.id, // Order ID from Razorpay
+        handler: function (response) {
+          alert('Payment successful! Payment ID: ' + response.razorpay_payment_id);
+        },
+        prefill: {
+          name: 'Your Name',
+          email: 'your.email@example.com',
+          contact: '9999999999'
+        },
+        theme: {
+          color: '#3399cc'
+        }
+      };
+  
+      const rzp = new Razorpay(options);
+      rzp.open();
+    });
+  </script>
+  
