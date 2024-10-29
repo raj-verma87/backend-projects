@@ -15,7 +15,7 @@ const register = async (req: Request, res: Response): Promise<Response> => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { name, email, password, role } = req.body;
+  const { username, email, password, role } = req.body;
 
   try {
     // Check if user already exists
@@ -23,17 +23,14 @@ const register = async (req: Request, res: Response): Promise<Response> => {
     if (user) {
       return res.status(400).json({ message: "User already exists" });
     }
-
-    // Create a new user
-    const hashedPassword = await bcrypt.hash(password, 10);
-
+    
     // For security, restrict role to 'user' by default unless explicitly allowed
     const userRole = role && role === "admin" ? "admin" : "user";
 
     user = new User({
-      name,
+      username,
       email,
-      password: hashedPassword,
+      password,
       role: userRole, // Set role
     });
 
@@ -80,7 +77,7 @@ const login = async (req: Request, res: Response): Promise<Response> => {
 
     return res.status(200).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user._id, username: user.username, email: user.email },
     });
   } catch (err) {
     return res.status(500).json({ message: "Server error" });

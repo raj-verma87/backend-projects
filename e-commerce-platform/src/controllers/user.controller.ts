@@ -30,7 +30,7 @@ const getProfile = async (req: Request, res: Response): Promise<Response> => {
 };
 
 const updateProfile = async (req: Request, res: Response): Promise<Response> => {
-  const { name, email } = req.body;
+  const { username, email } = req.body;
 
   try {
     const user = await User.findById(req.user?.id);
@@ -38,7 +38,7 @@ const updateProfile = async (req: Request, res: Response): Promise<Response> => 
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.name = name || user.name;
+    user.username = username || user.username;
     user.email = email || user.email;
     await user.save();
 
