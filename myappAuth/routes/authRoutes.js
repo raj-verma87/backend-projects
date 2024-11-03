@@ -4,7 +4,7 @@ const passport = require('passport');
 const router = express.Router();
 
 // Facebook OAuth
-router.get('/facebook', passport.authenticate('facebook', { scope: ['email', 'public_profile'] }));
+router.get('/facebook', passport.authenticate('facebook', { scope: ['email', 'public_profile']}));
 
 router.get('/facebook/callback',
   passport.authenticate('facebook', { failureRedirect: '/' }),
@@ -51,6 +51,11 @@ router.get('/profile', (req, res) => {
 
     // Access user data in req.user
   const user = req.user;
+
+  if(!user.picture){
+    console.log("picture:",user.picture);
+    user.picture = req.user.photos[0].value;
+  }
 
   // Set the profile picture to user's picture or use the placeholder
   const profilePicture = user.picture || 'https://via.placeholder.com/100';
