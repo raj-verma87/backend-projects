@@ -2,15 +2,28 @@ require('dotenv').config();
 const express = require('express');
 const passport = require('passport');
 const session = require('express-session');
-const mongoose = require('mongoose');
-const MongoStore = require('connect-mongo');
+const RedisStore = require('connect-redis').default;
+const redis = require('redis');
 require('./config/passportConfig'); // Import passport configuration
-
+const path = require('path');
 const app = express();
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI).then(() => console.log('Connected to MongoDB'))
-  .catch((error) => console.error('MongoDB connection error:', error));
+const redisClient = redis.createClient({
+  url: process.env.REDIS_URL // Ensure this is the correct connection string
+});
+
+redisClient.connect().catch(err => {
+  console.error('Redis connection error:', err);
+});
+
+// Check for errors and connection readiness
+redisClient.on('error', (err) => {
+  console.error('Redis error:', err);
+});
+
+redisClient.on('ready', () => {
+  console.log('Redis client is ready to use.');
+});
 
 // Middleware
 app.use(express.static('views')); // Serve static files from views
@@ -22,7 +35,7 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    store: new RedisStore({ client: redisClient }),
     cookie: {                   // Session cookie settings
       maxAge: 1000 * 60 * 60,   // Session expires after 1 hour (in ms)
       httpOnly: true,           // JavaScript can't access the cookie (mitigates XSS attacks)
@@ -42,6 +55,9 @@ app.use('/auth', authRoutes);
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html');
 });
+
+// Serve profile pictures from the 'profile_pictures' directory
+app.use('/profile_pictures', express.static(path.join(__dirname, 'profile_pictures')));
 
 app.listen(process.env.PORT, () =>
   console.log(`Server running on port ${process.env.PORT}`)

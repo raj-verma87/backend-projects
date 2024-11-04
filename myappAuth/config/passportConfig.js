@@ -2,7 +2,10 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
-const User = require('../models/User');
+const { saveUserSession, getUserSession } = require('../models/UserSession');
+const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
 
 passport.use(
   new GoogleStrategy(
@@ -12,23 +15,38 @@ passport.use(
       callbackURL: process.env.CALLBACK_URL,
     },
     async (accessToken, refreshToken, profile, done) => {
-      try {
-         // Upsert operation: update if exists, create if not
-         const user = await User.findOneAndUpdate(
-          { provider: 'google', providerId: profile.id },
-          {
-            displayName: profile.displayName,
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName,
-            email: profile.emails ? profile.emails[0].value : null,
-            picture: profile.photos?.[0]?.value,
-          },
-          { upsert: true, new: true } // upsert creates a new user if none found
-        );
-        done(null, user);
-      } catch (err) {
-        done(err);
+      const userData = {
+        providerId: profile.id,
+        displayName: profile.displayName,
+        email: profile.emails[0]?.value || '',
+        picture: profile.photos[0]?.value || '',
+        provider: 'google',
+      };
+  
+      // Set file path for the downloaded image
+      const filePath = path.join(__dirname,'..', 'profile_pictures', `${userData.providerId}.jpg`);
+
+      // Check if the image already exists locally
+      if (!fs.existsSync(filePath)) {
+        // Download the profile picture
+        const response = await axios.get(userData.picture, { responseType: 'stream' });
+        await fs.ensureDir(path.dirname(filePath)); // Ensure the directory exists
+        const writer = fs.createWriteStream(filePath);
+        response.data.pipe(writer);
+
+        // Wait for the download to finish
+        await new Promise((resolve, reject) => {
+          writer.on('finish', resolve);
+          writer.on('error', reject);
+        });
       }
+
+      // Add the local file path to the user data
+      userData.picture = `/profile_pictures/${userData.providerId}.jpg`;
+
+      // Save to Redis
+      await saveUserSession(profile.id, userData);
+      done(null, userData);
     }
   )
 );
@@ -41,20 +59,17 @@ passport.use(
       callbackURL: `${process.env.CALLBACK_GITHUB_URL}`,
     },
     async (accessToken, refreshToken, profile, done) => {
-      try {
-        const user = await User.findOneAndUpdate(
-          { provider: 'github', providerId: profile.id },
-          {
-            displayName: profile.displayName,
-            email: profile.emails ? profile.emails[0].value : null,
-            picture: profile.photos?.[0]?.value,
-          },
-          { upsert: true, new: true }
-        );
-        done(null, user);
-      } catch (err) {
-        done(err);
-      }
+      const userData = {
+        providerId: profile.id,
+        displayName: profile.displayName,
+        email: profile.emails ? profile.emails[0].value : null,
+        picture: profile.photos?.[0]?.value,
+        provider: 'github',
+      };
+  
+      // Save to Redis
+      await saveUserSession(profile.id, userData);
+      done(null, userData);
     }
   )
 );
@@ -66,35 +81,26 @@ passport.use(new FacebookStrategy({
     profileFields: ['id', 'displayName', 'photos', 'email']
   },
   async (accessToken, refreshToken, profile, done) => {
-    try {
-      const user = await User.findOneAndUpdate(
-        { provider: 'facebook', providerId: profile.id },
-        {
-          displayName: profile.displayName,
-          email: profile.emails ? profile.emails[0].value : null,
-          picture: profile.photos?.[0]?.value,
-        },
-        { upsert: true, new: true }
-      );
-      done(null, user);
-    } catch (err) {
-      done(err);
-    }
+    const userData = {
+      providerId: profile.id,
+      displayName: profile.displayName,
+      email: profile.emails ? profile.emails[0].value : null,
+      picture: profile.photos?.[0]?.value,
+      provider: 'facebook',
+    };
+
+    // Save to Redis
+    await saveUserSession(profile.id, userData);
+    done(null, userData);
   }
 ));
 
 // Serialize and deserialize user information to/from the session
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
-// passport.serializeUser((user, done) =>{
-//   console.log("User to serialize:", user);
-//    done(null, user._id)
-//   });
-//   passport.deserializeUser(async (id, done) => {
-//     try {
-//       const user = await User.findById(id);
-//       done(null, user);
-//     } catch (error) {
-//       done(error, null);
-//     }
-//   });
+passport.serializeUser((user, done) => {
+  done(null, user.providerId); // Store providerId in session
+});
+
+passport.deserializeUser(async (providerId, done) => {
+  const userData = await getUserSession(providerId);
+  done(null, userData);
+});

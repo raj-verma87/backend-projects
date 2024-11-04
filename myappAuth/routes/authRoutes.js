@@ -53,12 +53,12 @@ router.get('/profile', (req, res) => {
   const user = req.user;
 
   if(!user.picture){
-    console.log("picture:",user.picture);
     user.picture = req.user.photos[0].value;
   }
 
   // Set the profile picture to user's picture or use the placeholder
   const profilePicture = user.picture || 'https://via.placeholder.com/100';
+  console.log("picture:",profilePicture);
 
   res.send(`
     <h1>Welcome, ${user.displayName}</h1>
