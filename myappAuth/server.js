@@ -35,7 +35,10 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    store: new RedisStore({ client: redisClient }),
+    store: new RedisStore({
+      client: redisClient,
+      ttl: 1 * 60 * 60 // Session expiration in seconds (1 hours here)
+    }),
     cookie: {                   // Session cookie settings
       maxAge: 1000 * 60 * 60,   // Session expires after 1 hour (in ms)
       httpOnly: true,           // JavaScript can't access the cookie (mitigates XSS attacks)

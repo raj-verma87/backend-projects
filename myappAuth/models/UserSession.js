@@ -1,23 +1,21 @@
-// models/UserSession.js
-
 const Redis = require('ioredis');
-const redisClient = new Redis(); // Default configuration connects to localhost
+const redisClient = new Redis();
 
-// Helper function to save user session data in Redis
+// Save user session, ensuring only one session is stored per user
 async function saveUserSession(userId, userData) {
-  // Save user data with an expiration of 1 day (adjust as needed)
-  await redisClient.set(`user:${userId}`, JSON.stringify(userData), 'EX', 86400);
+  // Create or update user session with an expiration time
+  await redisClient.set(`user:${userId}:session`, JSON.stringify(userData), 'EX', 86400);
 }
 
-// Helper function to retrieve user session data from Redis
+// Get user session
 async function getUserSession(userId) {
-  const data = await redisClient.get(`user:${userId}`);
+  const data = await redisClient.get(`user:${userId}:session`);
   return data ? JSON.parse(data) : null;
 }
 
-// Helper function to delete user session data from Redis
-async function deleteUserSession(userId) {
-  await redisClient.del(`user:${userId}`);
+// Delete all sessions for a specific user
+async function deleteAllUserSessions(userId) {
+  await redisClient.del(`user:${userId}:session`);
 }
 
-module.exports = { saveUserSession, getUserSession, deleteUserSession };
+module.exports = { saveUserSession, getUserSession, deleteAllUserSessions };

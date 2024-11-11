@@ -2,10 +2,12 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
-const { saveUserSession, getUserSession } = require('../models/UserSession');
+const { saveUserSession, getUserSession,deleteAllUserSessions } = require('../models/UserSession');
 const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+
 
 passport.use(
   new GoogleStrategy(
@@ -44,9 +46,12 @@ passport.use(
       // Add the local file path to the user data
       userData.picture = `/profile_pictures/${userData.providerId}.jpg`;
 
-      // Save to Redis
-      await saveUserSession(profile.id, userData);
-      done(null, userData);
+       // Delete any existing session for the user
+       await deleteAllUserSessions(profile.id);
+      
+       // Save new session for the user
+       await saveUserSession(profile.id, userData);
+       return done(null, userData);
     }
   )
 );
@@ -97,10 +102,15 @@ passport.use(new FacebookStrategy({
 
 // Serialize and deserialize user information to/from the session
 passport.serializeUser((user, done) => {
-  done(null, user.providerId); // Store providerId in session
+  // Store the user ID in the session
+  done(null, user.providerId);
 });
-
-passport.deserializeUser(async (providerId, done) => {
-  const userData = await getUserSession(providerId);
-  done(null, userData);
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await getUserSession(id);
+    console.log('User Data:',user);
+    done(null, user); // Pass the full user data
+  } catch (err) {
+    done(err);
+  }
 });
