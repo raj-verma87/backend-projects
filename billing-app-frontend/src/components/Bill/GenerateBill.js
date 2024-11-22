@@ -52,7 +52,7 @@ const GenerateBill = () => {
       <h2>Generate Bill</h2>
       <div>
         {products.map((product) => (
-          <div key={product.id}>
+          <div key={product.id}  style={{ margin: '10px', padding: '1px' }}>
             <span>
               {product.name} (₹{product.price})
             </span>
@@ -68,7 +68,7 @@ const GenerateBill = () => {
 
       {billResponse && (
         <div>
-          <h3>Bill Summary</h3>
+          <h2>Bill Summary</h2>
           <p><strong>Bill ID:</strong> {billResponse.id}</p>
           <ul>
             {billResponse.billItems?.map((item) => (

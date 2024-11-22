@@ -17,7 +17,7 @@ const createBill = async (req, res) => {
         if (!product) throw new Error(`Product with ID ${productId} not found`);
         const price = product.price * quantity;
         totalAmount += price;
-
+        
         return BillItem.create({
           billId: bill.id,
           productId,
@@ -26,6 +26,9 @@ const createBill = async (req, res) => {
         });
       })
     );
+
+    await bill.update({ totalAmount });
+
     // Include the billItems and product details in the response
     const detailedBill = await Bill.findByPk(bill.id, {
       include: {
@@ -33,8 +36,7 @@ const createBill = async (req, res) => {
         include: Product,
       },
     });
-    await bill.update({ totalAmount });
-
+    
     res.status(201).json(detailedBill);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -45,7 +47,9 @@ const createBill = async (req, res) => {
 const getAllBills = async (req, res) => {
   try {
     const bills = await Bill.findAll({
-      include: { model: BillItem, include: Product }
+      include: { model: BillItem, include: Product },
+      order: [['createdAt', 'DESC']], // Sort by most recent
+
     });
     res.status(200).json(bills);
   } catch (error) {
