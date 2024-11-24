@@ -17,4 +17,7 @@ export const generateBill = (billData) => API.post('/bills', billData);
 // Fetch bill history
 export const fetchBills = () => API.get('/bills');
 
+// Fetch bill by ID
+export const fetchBillById = (id) => API.get(`/bills/${id}`);
+
 export default API;

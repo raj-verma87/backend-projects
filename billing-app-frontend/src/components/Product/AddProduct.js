@@ -21,18 +21,20 @@ const AddProduct = ({ setProducts }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} style={{marginTop:20 }}>
       <input
         type="text"
         placeholder="Product Name"
         value={formData.name}
         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        style={{ width: '180px', height: '30px', fontSize: '18px' }}  
       />
       <input
         type="number"
         placeholder="Product Price"
         value={formData.price}
         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+        style={{ width: '180px', height: '30px', fontSize: '18px' }}  
       />
       <input
         type="number"
@@ -40,9 +42,10 @@ const AddProduct = ({ setProducts }) => {
         value={formData.categoryId}
         onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
         required
+        style={{ width: '180px', height: '30px', fontSize: '18px' }}  
       />
 
-      <button type="submit">Add Product</button>
+      <button type="submit" style={{margin:5, width: '150px', height: '35px', fontSize: '18px' }}>Add Product</button>
     </form>
   );
 };

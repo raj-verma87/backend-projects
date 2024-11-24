@@ -11,7 +11,19 @@ const BillItem = sequelize.define('BillItem', {
   price: {
     type: DataTypes.FLOAT,
     allowNull: false
-  }
+  },
+  productId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  productName: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  billId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
 });
 
 // Define relationships

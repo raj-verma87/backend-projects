@@ -2,7 +2,7 @@ import React from 'react';
 
 const ProductList = ({ products }) => {
   return (
-    <div>
+    <div> 
       <h2>Product List</h2>
       <ul>
         {products.map((product) => (

@@ -27,12 +27,12 @@ const BillHistory = () => {
           {bills.map((bill) => (
             <div key={bill.id} style={{ border: '1px solid #ccc', margin: '10px', padding: '10px' }}>
               <p><strong>Bill ID:</strong> {bill.id}</p>
-              <p><strong>Date:</strong> {new Date(bill.createdAt).toLocaleString()}</p>
+              <p><strong>Date:</strong> {new Date(bill.date).toLocaleString()}</p>
               <p><strong>Total Amount:</strong> ₹{bill.totalAmount}</p>
               <ul>
                 {bill.billItems?.map((item) => (
                   <li key={item.id}>
-                    {item.product.name} - ₹{item.product.price} x {item.quantity}
+                    {item.productName} - ₹{item.price} x {item.quantity}
                   </li>
                 ))}
               </ul>

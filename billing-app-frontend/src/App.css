@@ -36,3 +36,16 @@
     transform: rotate(360deg);
   }
 }
+
+.button-style {
+  width: 170px;
+  height: 50px;
+  font-size: 18px;
+  background-color: lightgoldenrodyellow;
+  text-align: center;  /* Center the text inside the button */
+}
+
+.button-style a {
+ /*  text-decoration: none;  Remove the underline from the Link */
+  color: inherit;  /* Inherit the text color from the button */
+}
