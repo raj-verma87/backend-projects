@@ -1,7 +1,6 @@
 import React from 'react';
 
 const ShowCurrentBill = ({ bill }) => {
-
   if (!bill) {
     return <div style={{ margin: '20px' }}>No bills found</div>; // Show a loading message if the bill is undefined
   }
@@ -12,12 +11,15 @@ const ShowCurrentBill = ({ bill }) => {
     gst,
     makingCharges,
     otherCharges,
+    discount,
     paymentMode,
     date,
   } = bill;
 
-  const calculateGrandTotal = () =>
-    totalAmount + gst + makingCharges + otherCharges;
+  const calculateGrandTotal = () => {
+    // Grand total = Total Amount + GST + Making Charges + Other Charges - Discount
+    return Math.round(totalAmount + gst + makingCharges + otherCharges - discount);
+  };
 
   return (
     <div style={{ padding: '20px', border: '1px solid black', width: '60%', margin: '10px auto' }}>
@@ -84,6 +86,16 @@ const ShowCurrentBill = ({ bill }) => {
                 ₹{otherCharges}
               </td>
             </tr>
+            {/* Discount Row */}
+            <tr style={{ fontWeight: 'bold' }}>
+              <td colSpan="3" style={{ border: '1px solid black', padding: '5px', textAlign: 'right' }}>
+                Discount
+              </td>
+              <td style={{ border: '1px solid black', padding: '5px' }}>
+                ₹{discount}
+              </td>
+            </tr>
+            {/* Grand Total Row */}
             <tr style={{ fontWeight: 'bold' }}>
               <td colSpan="3" style={{ border: '1px solid black', padding: '5px', textAlign: 'right' }}>
                 Grand Total
@@ -98,7 +110,7 @@ const ShowCurrentBill = ({ bill }) => {
 
       {/* Payment Mode */}
       <section style={{ marginBottom: '20px' }}>
-        <h3>Payment Mode : {paymentMode}</h3>
+        <h3>Payment Mode: {paymentMode}</h3>
       </section>
 
       {/* Footer Section */}

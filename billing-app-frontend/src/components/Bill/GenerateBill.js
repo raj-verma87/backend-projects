@@ -6,6 +6,7 @@ const GenerateBill = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [paymentMode, setPaymentMode] = useState('');
   const [gst, setGst] = useState(0);
+  const [discount, setDiscount] = useState(0); // Added discount state
   const [makingCharges, setMakingCharges] = useState(0);
   const [otherCharges, setOtherCharges] = useState(0);
   const [billResponse, setBillResponse] = useState(null);
@@ -44,7 +45,8 @@ const GenerateBill = () => {
       const { data } = await generateBill({
         items: selectedItems,
         paymentMode,
-        gst,
+        gstPercentage:gst,
+        discountPercentage: discount, // Send discount percentage
         makingCharges,
         otherCharges,
       });
@@ -64,6 +66,7 @@ const GenerateBill = () => {
     setSelectedItems([]); // Reset selected items (products with quantities)
     setPaymentMode(''); // Reset payment mode
     setGst(0); // Reset GST
+    setDiscount(0); // Reset discount
     setMakingCharges(0); // Reset making charges
     setOtherCharges(0); // Reset other charges
   };
@@ -105,12 +108,22 @@ const GenerateBill = () => {
           />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label>GST:</label>
+          <label>GST (%):</label>
           <input
             type="number"
             value={gst}
             onChange={(e) => setGst(parseFloat(e.target.value) || 0)}
             placeholder="Enter GST"
+            style={{ width: '100%', padding: '5px' }}
+          />
+        </div>
+        <div style={{ marginBottom: '15px' }}>
+          <label>Discount (%):</label>
+          <input
+            type="number"
+            value={discount}
+            onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} // Discount input field
+            placeholder="Enter discount percentage"
             style={{ width: '100%', padding: '5px' }}
           />
         </div>
@@ -158,7 +171,7 @@ const GenerateBill = () => {
           <ul>
             {billResponse.billItems?.map((item) => (
               <li key={item.id}>
-                {item.product.name} - ₹{item.product.price} x {item.quantity}
+                {item.productName} - ₹{item.price} x {item.quantity}
               </li>
             ))}
           </ul>

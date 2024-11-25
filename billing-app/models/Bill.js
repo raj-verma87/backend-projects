@@ -26,6 +26,21 @@ const Bill = sequelize.define('Bill', {
     allowNull: false,
     defaultValue: 0, // Default to 0 for other charges
   },
+  discount: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0, // Default to 0 for other charges
+  },
+  balanceReceived: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0, // Default to 0 for other charges
+  },
+  balanceDue: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0, // Default to 0 for other charges
+  },
   paymentMode: {
     type: DataTypes.STRING,
     allowNull: false,

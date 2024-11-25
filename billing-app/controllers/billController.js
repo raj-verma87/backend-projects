@@ -6,51 +6,114 @@ const { generateUPIQRCode } = require('../utils/qrCode');
 // Helper function to calculate GST
 const calculateGST = (amount, gstPercentage) => (amount * gstPercentage) / 100;
 
-// Create a new bill
+// Helper function to calculate Discount
+const calculateDiscount = (amount, discountPercentage) =>{
+  return discountPercentage == 0 ? 0 : (amount * discountPercentage) / 100;
+  
+}
+
+// Create a new bill with GST and Discount
 const createBill = async (req, res) => {
   try {
-    const { items, customerDetails, paymentMode, gst, makingCharges, otherCharges } = req.body;
-    let totalAmount = 0;
+    const {
+      items,
+      customerDetails,
+      paymentMode,
+      gstPercentage = 18, // default GST 18%
+      discountPercentage = 0, // default discount 0%
+      makingCharges = 0,
+      otherCharges = 0,
+    } = req.body;
 
+    let subtotal = 0;
+    console.log("discountPercentage...",discountPercentage);
+    // Create the bill record initially with zero totalAmount
     const bill = await Bill.create({
-      totalAmount,
-      gst,
+      gst: 0,
+      discount: 0,
       makingCharges,
       otherCharges,
+      totalAmount: 0,
+      balanceReceived:0,
+      balanceDue:0,
       customerDetails: JSON.stringify(customerDetails),
       paymentMode,
     });
-
+    console.log("discountPercentage111...",discountPercentage);
+    // Create bill items and calculate subtotal (price before discount)
     await Promise.all(
       items.map(async ({ productId, quantity }) => {
         const product = await Product.findByPk(productId);
         if (!product) throw new Error(`Product with ID ${productId} not found`);
+
         const price = product.price * quantity;
-        totalAmount += price;
+        subtotal += price;
+
+        // Create BillItem entries
         return BillItem.create({
           billId: bill.id,
           productId,
           quantity,
-          price:product.price,
-          productName:product.name
+          price: product.price,
+          productName: product.name,
         });
       })
     );
-    await bill.update({ totalAmount });
 
+    // Calculate discount
+    const discountAmount = Math.round(calculateDiscount(subtotal, discountPercentage));
+    const amountAfterDiscount = subtotal - discountAmount;
+    console.log("discountAmount data...",subtotal,discountPercentage);
+    console.log("discountAmount...",discountAmount);
+    // Calculate GST on the discounted amount
+    const gstAmount = Math.round(calculateGST(amountAfterDiscount, gstPercentage));
+
+    // Calculate total amount (after discount) and apply GST, making charges, other charges
+    const totalAmount = amountAfterDiscount + gstAmount + makingCharges + otherCharges;
+
+    // Update the bill with the calculated values
+    await bill.update({
+      totalAmount:subtotal,
+      gst: gstAmount,
+      discount: discountAmount,
+      makingCharges,
+      otherCharges,
+    });
+
+    // Fetch the detailed bill with related items
     const detailedBill = await Bill.findByPk(bill.id, {
       include: {
         model: BillItem,
-        include: Product,
+        include: Product, // Include product details in the response
       },
     });
+    console.log("detailedBill...",detailedBill);
+    // Format the response with detailed information
+    const formattedBill = {
+      id: detailedBill.id,
+      date: detailedBill.date,
+      customerDetails: detailedBill.customerDetails ? JSON.parse(detailedBill.customerDetails) : {},
+      totalAmount: detailedBill.totalAmount,
+      gst: detailedBill.gst,
+      discount: detailedBill.discount,
+      makingCharges: detailedBill.makingCharges,
+      otherCharges: detailedBill.otherCharges,
+      billItems: detailedBill.BillItems.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        productName: item.productName,
+      })),
+      paymentMode: detailedBill.paymentMode,
+    };
 
-    res.status(201).json(detailedBill);
+    // Send the formatted bill as a response
+    res.status(201).json(formattedBill);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Get all bills
 const getAllBills = async (req, res) => {
@@ -62,7 +125,7 @@ const getAllBills = async (req, res) => {
       },
       order: [['createdAt', 'DESC']], // Sort bills by the most recent first
     });
-   // console.log("bill history111...",bills[0]);
+
     // Map over bills to format customerDetails and totals
     const formattedBills = bills.map((bill) => ({
       id: bill.id,
@@ -70,6 +133,7 @@ const getAllBills = async (req, res) => {
       customerDetails: bill.customerDetails ? JSON.parse(bill.customerDetails) : {},
       totalAmount: bill.totalAmount,
       gst: bill.gst,
+      discount: bill.discount,
       makingCharges: bill.makingCharges,
       otherCharges: bill.otherCharges,
       billItems: bill.BillItems.map((item) => ({
@@ -79,8 +143,9 @@ const getAllBills = async (req, res) => {
         price: item.price,
         productName: item.productName,
       })),
-      paymentMode: bill.paymentMode ?  bill.paymentMode : "offline",
+      paymentMode: bill.paymentMode ? bill.paymentMode : "Offline",
     }));
+
     res.status(200).json(formattedBills);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -90,9 +155,8 @@ const getAllBills = async (req, res) => {
 // Get a bill by its ID
 const getBillById = async (req, res) => {
   try {
-    const { id } = req.params;  // Get bill ID from the request parameters
+    const { id } = req.params;
 
-    // Fetch the bill by its ID with related BillItems and Products
     const bill = await Bill.findByPk(id, {
       include: {
         model: BillItem,
@@ -100,18 +164,17 @@ const getBillById = async (req, res) => {
       },
     });
 
-    // If the bill is not found, return a 404 response
     if (!bill) {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    // Format the response
     const formattedBill = {
       id: bill.id,
       date: bill.date,
       customerDetails: bill.customerDetails ? JSON.parse(bill.customerDetails) : {},
       totalAmount: bill.totalAmount,
       gst: bill.gst,
+      discount: bill.discount,
       makingCharges: bill.makingCharges,
       otherCharges: bill.otherCharges,
       billItems: bill.BillItems.map((item) => ({
@@ -121,10 +184,9 @@ const getBillById = async (req, res) => {
         price: item.price,
         productName: item.productName,
       })),
-      paymentMode: bill.paymentMode  ?  bill.paymentMode : "offline",
+      paymentMode: bill.paymentMode ? bill.paymentMode : "Offline",
     };
 
-    // Send the formatted bill as a response
     res.status(200).json(formattedBill);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -138,6 +200,7 @@ const createBillWithPayment = async (req, res) => {
       items,
       upiId,
       gstPercentage = 18,
+      discountPercentage = 0,
       makingCharges = 0,
       otherCharges = 0,
       customerDetails,
@@ -145,8 +208,10 @@ const createBillWithPayment = async (req, res) => {
 
     let subtotal = 0;
 
+    // Create the bill record initially with zero totalAmount
     const bill = await Bill.create({
       gst: 0,
+      discount: 0,
       makingCharges,
       otherCharges,
       totalAmount: 0,
@@ -171,14 +236,18 @@ const createBillWithPayment = async (req, res) => {
       })
     );
 
-    // Calculate GST
-    const gst = calculateGST(subtotal, gstPercentage);
+    // Calculate discount and apply it
+    const discountAmount = calculateDiscount(subtotal, discountPercentage);
+    const amountAfterDiscount = subtotal - discountAmount;
 
-    // Calculate the total amount
-    const totalAmount = subtotal + gst + makingCharges + otherCharges;
+    // Calculate GST on the discounted amount
+    const gst = calculateGST(amountAfterDiscount, gstPercentage);
 
-    // Update the bill with calculated amounts
-    await bill.update({ gst, makingCharges, otherCharges, totalAmount });
+    // Calculate the total amount (after discount) and apply GST, making charges, other charges
+    const totalAmount = amountAfterDiscount + gst + makingCharges + otherCharges;
+
+    // Update the bill with the calculated values
+    await bill.update({ gst, discount: discountAmount, makingCharges, otherCharges, totalAmount });
 
     // Generate UPI QR Code
     const qrCode = await generateUPIQRCode(upiId, totalAmount);
@@ -191,15 +260,13 @@ const createBillWithPayment = async (req, res) => {
       },
     });
 
-    // Format the response
     const formattedBill = {
       id: detailedBill.id,
       date: detailedBill.date,
-      customerDetails: detailedBill.customerDetails
-        ? JSON.parse(detailedBill.customerDetails)
-        : {},
+      customerDetails: detailedBill.customerDetails ? JSON.parse(detailedBill.customerDetails) : {},
       totalAmount: detailedBill.totalAmount,
       gst: detailedBill.gst,
+      discount: detailedBill.discount,
       makingCharges: detailedBill.makingCharges,
       otherCharges: detailedBill.otherCharges,
       billItems: detailedBill.BillItems.map((item) => ({
@@ -218,6 +285,5 @@ const createBillWithPayment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 module.exports = { createBill, getAllBills, createBillWithPayment, getBillById };
